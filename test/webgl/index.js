@@ -26,3 +26,4 @@ import './uniform-buffer-layout.spec';
 // Extensions / webgl2
 import './query.spec';
 import './transform-feedback.spec';
+import './gpu-buffer-map.spec';

@@ -61,6 +61,7 @@ export {default as Texture2DArray} from './webgl/texture-2d-array';
 export {default as TransformFeedback} from './webgl/transform-feedback';
 export {default as VertexArray} from './webgl/vertex-array';
 export {default as UniformBufferLayout} from './webgl/uniform-buffer-layout';
+export {default as GPUBufferMap} from './webgl/gpu-buffer-map';
 
 // Core Classes
 export {default as Model} from './core/model';

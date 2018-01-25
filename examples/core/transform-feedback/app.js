@@ -2,8 +2,8 @@
 /* eslint-disable no-console */
 
 import {
-  AnimationLoop, Buffer, Program, TransformFeedback, VertexArray, Matrix4,
-  setParameters
+  AnimationLoop, Buffer, Program, VertexArray, Matrix4,
+  setParameters, GPUBufferMap
 } from 'luma.gl';
 
 const FLOAT_SIZE = Float32Array.BYTES_PER_ELEMENT;
@@ -24,18 +24,6 @@ const VS_TRANSFORM = `#version 300 es
   void main() {
     gl_Position = MVP * position;
     v_color = vec4(clamp(vec2(position), 0.0, 1.0), 0.0, 1.0);
-  }
-`;
-
-const FS_TRANSFORM = `#version 300 es
-  precision highp float;
-  precision highp int;
-
-  in vec4 v_color;
-  out vec4 color;
-
-  void main() {
-    color = v_color;
   }
 `;
 
@@ -86,41 +74,32 @@ const animationLoop = new AnimationLoop({
     // ---- SETUP BUFFERS ---- //
     const bytes = POSITIONS.length * FLOAT_SIZE;
     const buffers = {
-      vertex: new Buffer(gl, {data: new Float32Array(POSITIONS)}),
-      position: new Buffer(gl, {bytes, type: gl.FLOAT, usage: gl.STATIC_COPY}),
-      color: new Buffer(gl, {bytes, type: gl.FLOAT, usage: gl.STATIC_COPY})
+      vertex: new Buffer(gl, {data: new Float32Array(POSITIONS), size: 4}),
+      position: new Buffer(gl, {bytes, type: gl.FLOAT, usage: gl.STATIC_COPY, size: 4}),
+      color: new Buffer(gl, {bytes, type: gl.FLOAT, usage: gl.STATIC_COPY, size: 4})
     };
 
-    // first pass, offscreen, no rasterization, vertices processing only
-    const transformProgram = new Program(gl, {
-      vs: VS_TRANSFORM, fs: FS_TRANSFORM, varyings: VARYINGS
+    /* eslint-disable camelcase  */
+    const bufferMap = new GPUBufferMap(gl, {
+      sourceBuffers: {
+        position: buffers.vertex
+      },
+      destinationBuffers: {
+        gl_Position: buffers.position,
+        v_color: buffers.color
+      },
+      vs: VS_TRANSFORM,
+      varyings: ['gl_Position', 'v_color'],
+      drawMode: gl.TRIANGLES,
+      elementCount: VERTEX_COUNT
     });
-
-    const transformVertexArray = new VertexArray(gl, {
-      buffers: {
-        [POSITION_LOCATION]: {buffer: buffers.vertex, size: 4}
-      }
-    });
-
-    const transformFeedback = new TransformFeedback(gl, {
-      buffers: {
-        0: buffers.position,
-        1: buffers.color
-      }
-    });
+    /* eslint-enable camelcase  */
 
     const renderProgram = new Program(gl, {vs: VS_FEEDBACK, fs: FS_FEEDBACK});
 
-    transformProgram.draw({
-      drawMode: gl.TRIANGLES,
-      vertexCount: VERTEX_COUNT,
-      vertexArray: transformVertexArray,
-      transformFeedback,
+    bufferMap.run({
       uniforms: {
         MVP: new Matrix4().identity()
-      },
-      parameters: {
-        [gl.RASTERIZER_DISCARD]: true
       }
     });
 
@@ -160,7 +139,6 @@ const animationLoop = new AnimationLoop({
     buffers.forEach(buffer => buffer.delete());
   }
 });
-
 
 animationLoop.getInfo = () => {
   return `

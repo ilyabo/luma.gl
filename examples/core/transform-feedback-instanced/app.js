@@ -7,7 +7,7 @@
 
 import {
   AnimationLoop, Buffer, TransformFeedback, VertexArray,
-  setParameters, Model
+  setParameters, Model, GPUBufferMap
 } from 'luma.gl';
 
 const OFFSET_LOCATION = 0;
@@ -134,26 +134,6 @@ const animationLoop = new AnimationLoop({
   /* eslint-disable max-statements */
   onInitialize({canvas, gl}) {
 
-    const modelRender = new Model(gl, {
-      id: 'Model-Render',
-      vs: DRAW_VS,
-      fs: DRAW_FS,
-      drawMode: gl.TRIANGLE_FAN,
-      vertexCount: 3,
-      isInstanced: true,
-      instanceCount: NUM_INSTANCES
-    });
-
-    const modelTransform = new Model(gl, {
-      id: 'Model-Transform',
-      vs: EMIT_VS,
-      fs: EMIT_FS,
-      varyings: EMIT_VARYINGS,
-      drawMode: gl.POINTS,
-      vertexCount: NUM_INSTANCES,
-      isInstanced: false
-    });
-
     // -- Initialize data
     const trianglePositions = new Float32Array([
       0.015, 0.0,
@@ -176,80 +156,60 @@ const animationLoop = new AnimationLoop({
       instanceColors[i * 3 + 2] = Math.random();
     }
 
-    // -- Init VertexArrays and TransformFeedback objects
-
-    const vertexArrays = new Array(2);
-    const transformVertexArrays = new Array(2);
-    const transformFeedbacks = new Array(2);
-
     const positionBuffer = new Buffer(gl, {
       data: trianglePositions,
       size: 2,
-      type: gl.FLOAT
+      type: gl.FLOAT,
+      instanced: 0
     });
     const colorBuffer = new Buffer(gl, {
       data: instanceColors,
       size: 3,
+      type: gl.FLOAT,
+      instanced: 1
+    });
+
+    const offsetBuffer = new Buffer(gl, {
+      data: instanceOffsets,
+      size: 2,
       type: gl.FLOAT
     });
 
-    for (let va = 0; va < vertexArrays.length; ++va) {
-      const offsetBuffer = new Buffer(gl, {
-        data: instanceOffsets,
-        size: 2,
-        type: gl.FLOAT
-      });
+    const rotationBuffer = new Buffer(gl, {
+      data: instanceRotations,
+      size: 1,
+      type: gl.FLOAT
+    });
 
-      const rotationBuffer = new Buffer(gl, {
-        data: instanceRotations,
-        size: 1,
-        type: gl.FLOAT
-      });
+    /* eslint-disable camelcase  */
+    const modelRender = new Model(gl, {
+      id: 'Model-Render',
+      vs: DRAW_VS,
+      fs: DRAW_FS,
+      drawMode: gl.TRIANGLE_FAN,
+      vertexCount: 3,
+      isInstanced: true,
+      instanceCount: NUM_INSTANCES,
+      attributes: {
+        a_position: positionBuffer,
+        a_color: colorBuffer
+      }
+    });
 
-      vertexArrays[va] = new VertexArray(gl, {
-        buffers: {
-          [COLOR_LOCATION]: {
-            buffer: colorBuffer,
-            instanced: 1
-          },
-          [OFFSET_LOCATION]: {
-            buffer: offsetBuffer,
-            instanced: 1
-          },
-          [ROTATION_LOCATION]: {
-            buffer: rotationBuffer,
-            instanced: 1
-          },
-          [POSITION_LOCATION]: {
-            buffer: positionBuffer,
-            instanced: 0
-          }
-        }
-      });
-
-      transformVertexArrays[va] = new VertexArray(gl, {
-        buffers: {
-          [OFFSET_LOCATION]: {
-            buffer: offsetBuffer,
-            instanced: 0
-          },
-          [ROTATION_LOCATION]: {
-            buffer: rotationBuffer,
-            instanced: 0
-          }
-        }
-      });
-
-      /* eslint-disable camelcase  */
-      transformFeedbacks[va] = new TransformFeedback(gl, {
-        buffers: {
-          v_rotation: rotationBuffer,
-          v_offset: offsetBuffer
-        },
-        varyingMap: modelTransform.varyingMap
-      });
-      /* eslint-enable camelcase  */
-    }
+    const bufferMap = new GPUBufferMap(gl, {
+      sourceBuffers: {
+        a_offset: offsetBuffer,
+        a_rotation: rotationBuffer
+      },
+      vs: EMIT_VS,
+      varyings: ['v_offset', 'v_rotation'],
+      sourceDestinationMap: {
+        a_offset: 'v_offset',
+        a_rotation: 'v_rotation'
+      },
+      elementCount: NUM_INSTANCES
+    });
+    /* eslint-enable camelcase  */
 
     setParameters(gl, {
       clearColor: [0.0, 0.0, 0.0, 1.0],
@@ -258,11 +218,12 @@ const animationLoop = new AnimationLoop({
     });
 
     return {
-      vertexArrays,
-      transformVertexArrays,
-      transformFeedbacks,
+      positionBuffer,
+      rotationBuffer,
+      colorBuffer,
+      offsetBuffer,
       modelRender,
-      modelTransform
+      bufferMap
     };
   },
   /* eslint-enable max-statements */
@@ -271,25 +232,34 @@ const animationLoop = new AnimationLoop({
     gl,
     width,
     height,
-    vertexArrays,
-    transformVertexArrays,
-    transformFeedbacks,
     modelRender,
-    modelTransform
+    positionBuffer,
+    colorBuffer,
+    bufferMap
   }) {
 
     gl.viewport(0, 0, width, height);
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
     const destinationIdx = (currentSourceIdx + 1) % 2;
 
-    modelTransform.draw({
-      vertexArray: transformVertexArrays[currentSourceIdx],
-      transformFeedback: transformFeedbacks[destinationIdx]
-    });
+    bufferMap.run();
 
-    modelRender.draw({
-      vertexArray: vertexArrays[currentSourceIdx]
+    const offsetBuffer = bufferMap.getBuffer('v_offset');
+    const rotationBuffer = bufferMap.getBuffer('v_rotation');
+
+    bufferMap.swapBuffers();
+
+    offsetBuffer.updateLayout({instanced: 1});
+    rotationBuffer.updateLayout({instanced: 1});
+    modelRender.setAttributes({
+      a_offset: offsetBuffer,
+      a_rotation: rotationBuffer
     });
+    modelRender.draw({
+//      vertexArray: vertexArrays[currentSourceIdx]
+    });
+    offsetBuffer.updateLayout({instanced: 0});
+    rotationBuffer.updateLayout({instanced: 0});
 
     currentSourceIdx = destinationIdx;
   },
