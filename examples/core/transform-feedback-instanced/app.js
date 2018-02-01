@@ -10,7 +10,7 @@ import {
   setParameters, Model, experimental
 } from 'luma.gl';
 
-const {GPUBufferMap} = experimental;
+const {BufferMap} = experimental;
 
 const OFFSET_LOCATION = 0;
 const ROTATION_LOCATION = 1;
@@ -198,7 +198,7 @@ const animationLoop = new AnimationLoop({
       }
     });
 
-    const bufferMap = new GPUBufferMap(gl, {
+    const bufferMap = new BufferMap(gl, {
       sourceBuffers: {
         a_offset: offsetBuffer,
         a_rotation: rotationBuffer

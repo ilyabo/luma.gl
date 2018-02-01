@@ -6,7 +6,7 @@ import {
   setParameters, experimental
 } from 'luma.gl';
 
-const {GPUBufferMap} = experimental;
+const {BufferMap} = experimental;
 
 const FLOAT_SIZE = Float32Array.BYTES_PER_ELEMENT;
 
@@ -82,7 +82,7 @@ const animationLoop = new AnimationLoop({
     };
 
     /* eslint-disable camelcase  */
-    const bufferMap = new GPUBufferMap(gl, {
+    const bufferMap = new BufferMap(gl, {
       sourceBuffers: {
         position: buffers.vertex
       },

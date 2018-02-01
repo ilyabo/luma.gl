@@ -129,11 +129,11 @@ export {default as diffuse} from './shadertools/modules/diffuse/diffuse';
 // EXPERIMENTAL EXPORTS
 
 import {clearBuffer} from './webgl/clear';
-import {default as GPUBufferMap} from './core/experimental/gpu-buffer-map';
+import {default as BufferMap} from './core/experimental/buffer-map';
 
 export const experimental = {
   clearBuffer,
-  GPUBufferMap
+  BufferMap
 };
 
 // DEPRECATED EXPORTS

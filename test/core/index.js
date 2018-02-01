@@ -1,2 +1,2 @@
 // Experimental
-import './experimental/gpu-buffer-map.spec';
+import './experimental/buffer-map.spec';

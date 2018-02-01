@@ -3,7 +3,7 @@ import 'luma.gl/headless';
 import test from 'tape-catch';
 import {fixture} from '../../setup';
 
-const {GPUBufferMap} = experimental;
+const {BufferMap} = experimental;
 const VS = `\
 #version 300 es
 attribute float inValue;
@@ -15,16 +15,16 @@ void main()
 }
 `;
 
-test('WebGL#GPUBufferMap constructor/delete', t => {
+test('WebGL#BufferMap constructor/delete', t => {
   const {gl, gl2} = fixture;
 
   t.throws(
-    () => new GPUBufferMap(),
+    () => new BufferMap(),
     /.*Requires WebGL2.*/,
     'Buffer throws on missing gl context');
 
   t.throws(
-    () => new GPUBufferMap(gl),
+    () => new BufferMap(gl),
     /.*Requires WebGL2.*/,
     'Buffer throws on missing gl context');
 
@@ -37,7 +37,7 @@ test('WebGL#GPUBufferMap constructor/delete', t => {
   const sourceData = new Float32Array([10, 20, 31, 0, -57]);
   const sourceBuffer = new Buffer(gl2, {data: sourceData});
 
-  const bufferMap = new GPUBufferMap(gl2, {
+  const bufferMap = new BufferMap(gl2, {
     sourceBuffers: {
       inValue: sourceBuffer
     },
@@ -49,18 +49,18 @@ test('WebGL#GPUBufferMap constructor/delete', t => {
     elementCount: 5
   });
 
-  t.ok(bufferMap instanceof GPUBufferMap, 'GPUBufferMap construction successful');
+  t.ok(bufferMap instanceof BufferMap, 'BufferMap construction successful');
 
   bufferMap.delete();
-  t.ok(bufferMap instanceof GPUBufferMap, 'GPUBufferMap delete successful');
+  t.ok(bufferMap instanceof BufferMap, 'BufferMap delete successful');
 
   bufferMap.delete();
-  t.ok(bufferMap instanceof GPUBufferMap, 'GPUBufferMap repeated delete successful');
+  t.ok(bufferMap instanceof BufferMap, 'BufferMap repeated delete successful');
 
   t.end();
 });
 
-test('WebGL#GPUBufferMap run', t => {
+test('WebGL#BufferMap run', t => {
   const {gl2} = fixture;
 
   if (!gl2) {
@@ -72,7 +72,7 @@ test('WebGL#GPUBufferMap run', t => {
   const sourceData = new Float32Array([10, 20, 31, 0, -57]);
   const sourceBuffer = new Buffer(gl2, {data: sourceData});
 
-  const bufferMap = new GPUBufferMap(gl2, {
+  const bufferMap = new BufferMap(gl2, {
     sourceBuffers: {
       inValue: sourceBuffer
     },
@@ -94,7 +94,7 @@ test('WebGL#GPUBufferMap run', t => {
   t.end();
 });
 
-test('WebGL#GPUBufferMap run', t => {
+test('WebGL#BufferMap swapBuffers', t => {
   const {gl2} = fixture;
 
   if (!gl2) {
@@ -106,7 +106,7 @@ test('WebGL#GPUBufferMap run', t => {
   const sourceData = new Float32Array([10, 20, 31, 0, -57]);
   const sourceBuffer = new Buffer(gl2, {data: sourceData});
 
-  const bufferMap = new GPUBufferMap(gl2, {
+  const bufferMap = new BufferMap(gl2, {
     sourceBuffers: {
       inValue: sourceBuffer
     },

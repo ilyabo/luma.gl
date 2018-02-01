@@ -10,7 +10,7 @@ void main()
 {
 }`;
 
-export default class GPUBufferMap {
+export default class BufferMap {
 
   static isSupported(gl) {
     // For now WebGL2 only
