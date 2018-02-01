@@ -1,5 +1,13 @@
 # What's New
 
+## Version 5.next
+
+## New class BufferMap
+
+`BufferMap` class provides easy interface to perform Transform Feedback operations.
+
+## Version 5.1
+
 ## TransformFeedback enhancements
 
 TransformFeedback is now supported directly by the `Model` class, it is no longer necessary to work with the `Program` class.
