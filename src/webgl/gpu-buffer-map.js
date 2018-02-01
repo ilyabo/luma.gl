@@ -1,20 +1,16 @@
 import GL from './gl-constants';
-import Resource from './resource';
 import Buffer from './buffer';
 import TransformFeedback from './transform-feedback';
 import Model from './../core/model';
 import {isWebGL2, assertWebGL2Context} from './context';
 import assert from 'assert';
 
-// TODO: append 'version' only if VS has it.
-const DEFAULT_FS = `\
-#version 300 es
+const PASS_THROUGH_FS = `\
 void main()
 {
-}
-`;
+}`;
 
-export default class GPUBufferMap extends Resource {
+export default class GPUBufferMap {
 
   static isSupported(gl) {
     // For now WebGL2 only
@@ -23,33 +19,19 @@ export default class GPUBufferMap extends Resource {
 
   constructor(gl, opts = {}) {
     assertWebGL2Context(gl);
-    super(gl, opts);
 
+    this.gl = gl;
     this.model = null;
-    this.buffersSwapable = false;
+    this._buffersSwapable = false;
     this.currentIndex = 0;
     this.sourceBuffers = new Array(2);
     this.destinationBuffers = new Array(2);
-    this.vertexArrays = new Array(2);
     this.transformFeedbacks = new Array(2);
+    this._buffersToDelete = [];
     this.elementCount = 0;
 
     this.initialize(opts);
     Object.seal(this);
-  }
-
-  // TODO: Fix super class, it shouldn't be Resource
-  _createHandle() {
-  }
-
-  _deleteHandle() {
-    // TODO: Delete all resources, source buffers, destination buffers, TF and Model
-  }
-
-  _getOptsFromHandle() {
-  }
-
-  _getParameter(pname, opts) {
   }
 
   initialize({
@@ -63,7 +45,9 @@ export default class GPUBufferMap extends Resource {
   }) {
     assert(sourceBuffers && vs && varyings && elementCount);
 
-    this.buffersSwapable = !destinationBuffers && sourceDestinationMap;
+    // If destinationBuffers are not provided, sourceDestinationMap must be provided
+    // to create destinaitonBuffers with layout of corresponding source buffer.
+    assert(destinationBuffers || sourceDestinationMap);
 
     this.bindBuffers({sourceBuffers, destinationBuffers, sourceDestinationMap});
 
@@ -83,15 +67,26 @@ export default class GPUBufferMap extends Resource {
       });
     }
 
+    // Append matching version string to FS.
+    let fs = PASS_THROUGH_FS;
+    const vsLines = vs.split('\n');
+    if (vsLines[0].indexOf('#version ') === 0) {
+      fs = `\
+${vsLines[0]}
+${PASS_THROUGH_FS}
+`;
+    }
+
     this.model = new Model(this.gl, {
       vs,
-      fs: DEFAULT_FS,
+      fs,
       varyings: this.varyings,
       drawMode,
       vertexCount: elementCount
     });
   }
 
+  // build source and destination buffers
   bindBuffers({
     sourceBuffers = null,
     destinationBuffers = null,
@@ -110,22 +105,22 @@ export default class GPUBufferMap extends Resource {
       this.destinationBuffers[0][bufferName] = destinationBuffers[bufferName];
     }
 
-    if (this.buffersSwapable) {
+    if (sourceDestinationMap) {
+      this._buffersSwapable = true;
       this.sourceBuffers[1] = {};
       this.destinationBuffers[1] = {};
-    }
 
-    for (const sourceBufferName in sourceDestinationMap) {
-      const destinationBufferName = sourceDestinationMap[sourceBufferName];
-      if (!this.destinationBuffers[0][destinationBufferName]) {
-        const sourceBuffer = this.sourceBuffers[0][sourceBufferName];
-        // Create new buffer with same layout and settings as source buffer
-        const {bytes, type, usage, layout} = sourceBuffer;
-        this.destinationBuffers[0][destinationBufferName] =
-          new Buffer(this.gl, {bytes, type, usage, layout});
-      }
+      for (const sourceBufferName in sourceDestinationMap) {
+        const destinationBufferName = sourceDestinationMap[sourceBufferName];
+        if (!this.destinationBuffers[0][destinationBufferName]) {
+          // Create new buffer with same layout and settings as source buffer
+          const sourceBuffer = this.sourceBuffers[0][sourceBufferName];
+          const {bytes, type, usage, layout} = sourceBuffer;
+          this.destinationBuffers[0][destinationBufferName] =
+            new Buffer(this.gl, {bytes, type, usage, layout});
+          this._buffersToDelete.push(this.destinationBuffers[0][destinationBufferName]);
+        }
 
-      if (this.buffersSwapable) {
         this.sourceBuffers[1][sourceBufferName] =
           this.destinationBuffers[0][destinationBufferName];
         this.destinationBuffers[1][destinationBufferName] =
@@ -136,6 +131,15 @@ export default class GPUBufferMap extends Resource {
     return this;
   }
 
+  // Delete owned resources.
+  delete() {
+    for (const buffer of this._buffersToDelete) {
+      buffer.delete();
+    }
+    this.model.delete();
+  }
+
+  // Run one transformfeedback loop.
   run({uniforms = {}} = {}) {
     this.model.setAttributes(this.sourceBuffers[this.currentIndex]);
     this.model.draw({
@@ -147,11 +151,13 @@ export default class GPUBufferMap extends Resource {
     });
   }
 
+  // Swap source and destination buffers.
   swapBuffers() {
-    assert(this.buffersSwapable);
+    assert(this._buffersSwapable);
     this.currentIndex = (this.currentIndex + 1) % 2;
   }
 
+  // Return Buffer object for given varying name.
   getBuffer(varyingName = null) {
     assert(varyingName && this.destinationBuffers[this.currentIndex][varyingName]);
     return this.destinationBuffers[this.currentIndex][varyingName];
