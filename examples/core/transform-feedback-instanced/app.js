@@ -7,8 +7,10 @@
 
 import {
   AnimationLoop, Buffer, TransformFeedback, VertexArray,
-  setParameters, Model, GPUBufferMap
+  setParameters, Model, experimental
 } from 'luma.gl';
+
+const {GPUBufferMap} = experimental;
 
 const OFFSET_LOCATION = 0;
 const ROTATION_LOCATION = 1;

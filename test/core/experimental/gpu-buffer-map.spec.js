@@ -1,8 +1,9 @@
-import {GPUBufferMap, Buffer} from 'luma.gl';
+import {experimental, Buffer} from 'luma.gl';
 import 'luma.gl/headless';
 import test from 'tape-catch';
-import {fixture} from '../setup';
+import {fixture} from '../../setup';
 
+const {GPUBufferMap} = experimental;
 const VS = `\
 #version 300 es
 attribute float inValue;

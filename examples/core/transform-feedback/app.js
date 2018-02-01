@@ -3,8 +3,10 @@
 
 import {
   AnimationLoop, Buffer, Program, VertexArray, Matrix4,
-  setParameters, GPUBufferMap
+  setParameters, experimental
 } from 'luma.gl';
+
+const {GPUBufferMap} = experimental;
 
 const FLOAT_SIZE = Float32Array.BYTES_PER_ELEMENT;
 

@@ -61,7 +61,6 @@ export {default as Texture2DArray} from './webgl/texture-2d-array';
 export {default as TransformFeedback} from './webgl/transform-feedback';
 export {default as VertexArray} from './webgl/vertex-array';
 export {default as UniformBufferLayout} from './webgl/uniform-buffer-layout';
-export {default as GPUBufferMap} from './webgl/gpu-buffer-map';
 
 // Core Classes
 export {default as Model} from './core/model';
@@ -129,11 +128,12 @@ export {default as diffuse} from './shadertools/modules/diffuse/diffuse';
 
 // EXPERIMENTAL EXPORTS
 
-import {
-  clearBuffer} from './webgl/clear';
+import {clearBuffer} from './webgl/clear';
+import {default as GPUBufferMap} from './core/experimental/gpu-buffer-map';
 
 export const experimental = {
-  clearBuffer
+  clearBuffer,
+  GPUBufferMap
 };
 
 // DEPRECATED EXPORTS
