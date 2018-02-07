@@ -1,5 +1,8 @@
 import {getContextInfo} from '../../webgl';
 import {hasFeature, FEATURES} from '../../webgl/context-features';
+import {window, document} from 'global';
+
+const isIE11 = window && Boolean(window.MSInputMethodContext) && Boolean(document.documentMode);
 
 export function checkRendererVendor(debugInfo, gpuVendor) {
   const {vendor, renderer} = debugInfo;
@@ -92,7 +95,7 @@ export function getVersionDefines(gl) {
 #endif
 `;
   }
-  if (hasFeature(gl, FEATURES.GLSL_DERIVATIVES)) {
+  if (hasFeature(gl, FEATURES.GLSL_DERIVATIVES) && !isIE11) {
     versionDefines += `\
 // DERIVATIVES => dxdF, dxdY and fwidth are available
 #ifdef GL_OES_standard_derivatives
@@ -101,7 +104,7 @@ export function getVersionDefines(gl) {
 #endif
 `;
   }
-  if (hasFeature(gl, FEATURES.GLSL_FRAG_DATA)) {
+  if (hasFeature(gl, FEATURES.GLSL_FRAG_DATA) && !isIE11) {
     versionDefines += `\
 // DRAW_BUFFERS => gl_FragData[] is available
 #ifdef GL_EXT_draw_buffers
